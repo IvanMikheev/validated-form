@@ -1,0 +1,9 @@
+.app {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.app h2 {
+  text-align: center;
+  padding: 20px;
+}
