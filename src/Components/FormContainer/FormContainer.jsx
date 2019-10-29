@@ -3,11 +3,11 @@ import axios from 'axios';
 import { Button, Form, FormGroup, FormFeedback, Label, Input, CustomInput, Alert } from 'reactstrap';
 import './FormContainer.css'
 
-const validateForm = ({ errors, formValues }) => {
+const validateForm = ({ errorsMessage, formValues }) => {
   let valid = true;
 
   // validate form errors being empty
-  Object.values(errors).forEach(val => {
+  Object.values(errorsMessage).forEach(val => {
     val.length > 0 && (valid = false);
   });
 
@@ -39,7 +39,8 @@ export class FormContainer extends Component {
     super(props);
 
     this.state = {
-      alertVisible: false,
+      alertSuccessVisible: false,
+      alertErrorVisible: false,
       formValues: {
         firstName: '',
         lastName: '',
@@ -48,12 +49,14 @@ export class FormContainer extends Component {
         education: '',
         isMarried: false,
       },
-      errors: {
+      errorsMessage: {
         firstName: '',
         lastName: '',
         birthday: '',
         education: ''
-      }
+      },
+      postError: false,
+      postErrorResponse: null
     }
 
     this.handleChange = this.handleChange.bind(this);
@@ -63,27 +66,27 @@ export class FormContainer extends Component {
 
   handleChange = (event) => {
     const { name, value } = event.target;
-    let { errors, formValues } = this.state;
+    let { errorsMessage, formValues } = this.state;
 
     switch (name) {
       case 'firstName':
-        errors.firstName = value.length < 3 ? 'Имя должно содержать не менее 3 символов' : '';
+        errorsMessage.firstName = value.length < 3 ? 'Имя должно содержать не менее 3 символов' : '';
         break;
       case 'lastName':
-        errors.lastName = value.length < 3 ? 'Фамилия должна содержать не менее 3 символов' : '';
+        errorsMessage.lastName = value.length < 3 ? 'Фамилия должна содержать не менее 3 символов' : '';
         break;
       case 'birthday':
-        errors.birthday = value === '' ? 'Заполните дату' : '';
+        errorsMessage.birthday = value === '' ? 'Заполните дату' : '';
         break;
       case 'education':
-        errors.education = value === '' ? 'Выберите образование' : '';
+        errorsMessage.education = value === '' ? 'Выберите образование' : '';
         break;
       default:
         break;
     }
     formValues[name] = value;
     this.setState({
-      errors,
+      errorsMessage,
       formValues
     });
   }
@@ -98,13 +101,13 @@ export class FormContainer extends Component {
 
   handleSubmit = (event) => {
     event.preventDefault();
-    let { errors, formValues } = this.state;
+    let { errorsMessage, formValues } = this.state;
 
     Object.keys(formValues).forEach(key => {
-      (formValues[key] === '') && (errors[key] = getErrorMessage(key));
+      (formValues[key] === '') && (errorsMessage[key] = getErrorMessage(key));
     });
 
-    this.setState({ errors });
+    this.setState({ errorsMessage });
 
     if (validateForm(this.state)) {
       const apiUrl = 'http://localhost:5000/api/people/';
@@ -120,8 +123,11 @@ export class FormContainer extends Component {
             response: result,
           })
         },
-          (postError) => {
-            this.setState({ postError });
+          (postErrorResponse) => {
+            this.setState({
+               postErrorResponse,
+               postError: true
+              });
           }
         );
 
@@ -144,61 +150,76 @@ export class FormContainer extends Component {
         isMarried: false,
       }
 
-      this.setState({ alertVisible: true, formValues }, () => {
-        window.setTimeout(() => {
-          this.setState({ alertVisible: false })
-        }, 3000)
-      });
+      if (this.state.postError) {
+        this.setState({ alertSuccessVisible: true, formValues }, () => {
+          window.setTimeout(() => {
+            this.setState({ alertSuccessVisible: false })
+          }, 3000)
+        });
+       } else {
+        console.error(this.state.postErrorResponse);
+        this.setState({ alertErrorVisible: true }, () => {
+          window.setTimeout(() => {
+            this.setState({ alertErrorVisible: false })
+          }, 10000)
+        });
+      }
+      
     } else {
       console.error('Invalid Form')
     }
   }
 
   render() {
-    const { errors, formValues } = this.state;
+    const { errorsMessage, formValues } = this.state;    
+
     return (
 
       <Form onSubmit={this.handleSubmit} className="form">
-        <Alert color="success" isOpen={this.state.alertVisible} >
+        <Alert color="success" isOpen={this.state.alertSuccessVisible} >
           Данные успешно добавлены!
+        </Alert>
+
+        <Alert color="danger" isOpen={this.state.alertErrorVisible} >
+          Ошибка запроса!!
         </Alert>
 
         <FormGroup>
           <Label for="firstName">Имя</Label>
           <Input
-            invalid={errors.firstName.length > 0}
+            invalid={errorsMessage.firstName.length > 0}
             type="text"
             name="firstName"
             onChange={this.handleChange}
             value={formValues.firstName}
           />
-          <FormFeedback invalid={errors.firstName.length > 0 ? 'true' : 'false'}>
-            {errors.firstName}
+          <FormFeedback invalid={errorsMessage.firstName.length > 0 ? 'true' : 'false'}>
+            {errorsMessage.firstName}
           </FormFeedback>
         </FormGroup>
 
         <FormGroup>
           <Label for="lastName">Фамилия</Label>
           <Input
-            invalid={errors.lastName.length > 0}
+            invalid={errorsMessage.lastName.length > 0}
             type="text"
             name="lastName"
             onChange={this.handleChange}
             value={formValues.lastName}
           />
-          <FormFeedback invalid={errors.lastName.length > 0 ? 'true' : 'false'}>{errors.lastName}</FormFeedback>
+          <FormFeedback invalid={errorsMessage.lastName.length > 0 ? 'true' : 'false'}>{errorsMessage.lastName}</FormFeedback>
         </FormGroup>
 
         <FormGroup>
           <Label for="birthday">Дата рождения</Label>
           <Input
-            invalid={errors.birthday.length > 0}
+            invalid={errorsMessage.birthday.length > 0}
             type="date"
             name="birthday"
             onChange={this.handleChange}
             value={formValues.birthday}
           />
-          <FormFeedback invalid={errors.birthday.length > 0 ? 'true' : 'false'}>{errors.birthday}</FormFeedback>
+          <FormFeedback invalid={errorsMessage.birthday.length > 0 ? 'true' : 'false'}>{errorsMessage.birthday}</FormFeedback>
         </FormGroup>
 
         <FormGroup tag="fieldset">
@@ -237,7 +258,7 @@ export class FormContainer extends Component {
         <FormGroup>
           <Label for="education">Образование</Label>
           <Input
-            invalid={errors.education.length > 0}
+            invalid={errorsMessage.education.length > 0}
             type="select"
             name="education"
             value={formValues.education}
@@ -249,7 +270,7 @@ export class FormContainer extends Component {
             <option value="Среднее профессиональное">Среднее профессиональное</option>
             <option value="Высшее">Высшее</option>
           </Input>
-          <FormFeedback invalid={errors.education.length > 0 ? 'true' : 'false'}>{errors.education}</FormFeedback>
+          <FormFeedback invalid={errorsMessage.education.length > 0 ? 'true' : 'false'}>{errorsMessage.education}</FormFeedback>
         </FormGroup>
         <FormGroup>
           <CustomInput
