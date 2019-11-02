@@ -96,7 +96,7 @@ export class ListView extends Component {
                   <td>{getDate(person.birthday)}</td>
                   <td>{person.gender}</td>
                   <td>{person.education}</td>
-                  <td>{person.isMarried ? 'Да' : 'Нет'}</td>
+                  <td>{person.isMarried === 'true' ? 'Да' : 'Нет'}</td>
                 </tr>
               );
             })}

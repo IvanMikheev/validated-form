@@ -99,7 +99,7 @@ export class FormContainer extends Component {
     });
   }
 
-  handleSubmit = (event) => {
+  handleSubmit = async (event) => {
     event.preventDefault();
     let { errorsMessage, formValues } = this.state;
 
@@ -111,26 +111,9 @@ export class FormContainer extends Component {
 
     if (validateForm(this.state)) {
       const apiUrl = 'http://localhost:5000/api/people/';
-
-      axios.post(apiUrl, JSON.stringify(this.state.formValues), {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-        .then(res => res.json())
-        .then(result => {
-          this.setState({
-            response: result,
-          })
-        },
-          (postErrorResponse) => {
-            this.setState({
-               postErrorResponse,
-               postError: true
-              });
-          }
-        );
-
+      let formValuesToSend = { ...this.state.formValues };
+      formValuesToSend.isMarried = formValuesToSend.isMarried.toString();
+      
       console.info(`
           ==Submitting==
         firstName: ${formValues.firstName}
@@ -141,6 +124,23 @@ export class FormContainer extends Component {
         isMarried: ${formValues.isMarried}
       `);
 
+      await axios.post(apiUrl, JSON.stringify(formValuesToSend), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'        
+        },
+        mode: 'no-cors'
+      })
+        .then(res => {
+          console.log(res);
+        })
+        .catch(error => {
+          this.setState({
+            postError: true,
+            postErrorResponse: error
+          })
+        });
+
       formValues = {
         firstName: '',
         lastName: '',
@@ -150,13 +150,13 @@ export class FormContainer extends Component {
         isMarried: false,
       }
 
-      if (this.state.postError) {
+      if (!this.state.postError) {
         this.setState({ alertSuccessVisible: true, formValues }, () => {
           window.setTimeout(() => {
             this.setState({ alertSuccessVisible: false })
           }, 3000)
         });
-       } else {
+      } else {
         console.error(this.state.postErrorResponse);
         this.setState({ alertErrorVisible: true }, () => {
           window.setTimeout(() => {
@@ -164,14 +164,14 @@ export class FormContainer extends Component {
           }, 10000)
         });
       }
-      
+
     } else {
-      console.error('Invalid Form')
+      console.error('Invalid Form');
     }
   }
 
   render() {
-    const { errorsMessage, formValues } = this.state;    
+    const { errorsMessage, formValues } = this.state;
 
     return (
 
